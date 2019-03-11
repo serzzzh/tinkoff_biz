@@ -6,10 +6,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-import requests
+from selenium.webdriver.support.ui import Select
+from selenium.common.exceptions import WebDriverException
 
 
-page_load_timeout = 5  # 1-2-3-4-5 sec
+page_load_timeout = 3  # 1-2-3-4-5 sec
 
 
 def find_element(method, html_element):
@@ -66,7 +67,7 @@ def click(method, html_element):
         wait_element(method, html_element)
         element = find_element(method, html_element)
         if element is not None:
-            element.click() #  it's not working stable
+            element.click()  # it's not working stable
             # element.send_keys("\n") #  it's not working stable
             return True
         else:
@@ -80,7 +81,7 @@ def click_url(method, html_element):
         wait_element(method, html_element)
         element = find_element(method, html_element)
         if element is not None:
-            element.click() #  it's not working stable
+            element.click()  # it's not working stable
             # element.send_keys("\n")
             return True
         else:
@@ -110,7 +111,7 @@ def wait_while_exists(method, html_element, value='', wait_time=page_load_timeou
     for wait_sec in range(wait_time):
         try:
             if check_element_exists(method, html_element):
-               time.sleep(wait_time)
+                time.sleep(wait_time)
             else:
                 return True
         except Exception as e:
@@ -152,7 +153,7 @@ def go_url(link, go_url_page_load_timeout=page_load_timeout):
         driver.implicitly_wait(go_url_page_load_timeout)
 
 
-def open_wait(link, wait_title = '', go_url_page_load_timeout=page_load_timeout):
+def open_wait(link, wait_title='', go_url_page_load_timeout=page_load_timeout):
     try:
         driver.get(link)
         if not wait_title:
@@ -231,3 +232,26 @@ def send_mail(mail_from, mail_to, subj, body):
         conn.sendmail(mail_from, mail_to, msg.as_string())
     finally:
         conn.quit()
+
+
+def wheel_element(element, deltaY=120, offsetX=0, offsetY=0):
+    error = element._parent.execute_script("""
+    var element = arguments[0];
+    var deltaY = arguments[1];
+    var box = element.getBoundingClientRect();
+    var clientX = box.left + (arguments[2] || box.width / 2);
+    var clientY = box.top + (arguments[3] || box.height / 2);
+    var target = element.ownerDocument.elementFromPoint(clientX, clientY);
+
+    for (var e = target; e; e = e.parentElement) {
+      if (e === element) {
+        target.dispatchEvent(new MouseEvent('mouseover', {view: window, bubbles: true, cancelable: true, clientX: clientX, clientY: clientY}));
+        target.dispatchEvent(new MouseEvent('mousemove', {view: window, bubbles: true, cancelable: true, clientX: clientX, clientY: clientY}));
+        target.dispatchEvent(new WheelEvent('wheel',     {view: window, bubbles: true, cancelable: true, clientX: clientX, clientY: clientY, deltaY: deltaY}));
+        return;
+      }
+    }    
+    return "Element is not interactable";
+    """, element, deltaY, offsetX, offsetY)
+    if error:
+        raise WebDriverException(error)
